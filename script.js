@@ -558,7 +558,31 @@ async function loadAdminOrders() {
 }
 
 window.adminChangeStatus = async function(id, status) {
-    if (status === 'Удалить' && !confirm('Удалить этот заказ из истории навсегда?')) return;
+    if (status === 'Удалить') {
+        if (!confirm('Удалить этот заказ из истории навсегда?')) return;
+        
+        try {
+            const res = await fetch(`${SERVER_URL}/api/orders/${id}`, {
+                method: 'DELETE', // Используем метод DELETE
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast('🗑 Заказ удален из базы');
+                loadAdminOrders();
+            } else {
+                alert(result.message || 'Не удалось удалить заказ');
+            }
+        } catch (err) { 
+            console.error(err);
+            alert('Ошибка соединения с сервером'); 
+        }
+        return;
+    }
+
+    // Обычная смена статусов через PATCH
     try {
         const res = await fetch(`${SERVER_URL}/api/orders/${id}`, {
             method: 'PATCH',
@@ -570,11 +594,12 @@ window.adminChangeStatus = async function(id, status) {
         });
         const result = await res.json();
         if (result.success) {
-            showToast(status === 'Удалить' ? '🗑 Заказ удален из базы' : `⚙️ Статус изменен на: "${status}"`);
+            showToast(`⚙️ Статус изменен на: "${status}"`);
             loadAdminOrders();
         }
     } catch (err) { console.error(err); }
 };
+
 // ==========================================
 // 7. АВТОРИЗАЦИЯ КЛИЕНТОВ И ИНИЦИАЛИЗАЦИЯ DOM
 // ==========================================
