@@ -1,4 +1,4 @@
-const SERVER_URL = 'https://onrender.com';
+const SERVER_URL = 'https://technomarket-api.onrender.com/';
 let cart = JSON.parse(localStorage.getItem('fresh_cart')) || [];
 let editProductId = null;
 
