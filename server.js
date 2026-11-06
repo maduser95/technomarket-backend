@@ -268,12 +268,19 @@ app.get('/api/products', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Ошибка сервера" }); }
 });
 
-app.post('/api/products', verifyToken, upload.single('productImage'), async (req, res) => {
+app.post('/api/products', verifyToken, async (req, res) => {
     try {
-        const { name, price, desc } = req.body;
-        let imageUrl = "/uploads/default.jpg"; 
-        let isLocalImg = false;
-        if (req.file) { imageUrl = "/uploads/" + req.file.filename; isLocalImg = true; }
+        const { name, price, desc, img } = req.body; // <-- Добавили img сюда
+let imageUrl = "/uploads/default.jpg";
+let isLocalImg = false;
+
+if (req.file) { 
+    imageUrl = "/uploads/" + req.file.filename; 
+    isLocalImg = true; 
+} else if (img && img.trim() !== "") { // <-- Добавили проверку ссылки из интернета
+    imageUrl = img.trim();
+    isLocalImg = false;
+}
 
         const newProduct = new Product({ name, price: Number(price), desc: desc || "Описание отсутствует", img: imageUrl, isLocalImg });
         await newProduct.save();
@@ -300,7 +307,7 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
     } catch (error) { return res.status(500).json({ success: false, message: "Ошибка сервера" }); }
 });
 
-app.put('/api/products/:id', verifyToken, upload.single('productImage'), async (req, res) => {
+app.put('/api/products/:id', verifyToken, async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ success: false, message: "Товар не найден" });
@@ -319,10 +326,15 @@ app.put('/api/products/:id', verifyToken, upload.single('productImage'), async (
                     }
                 } catch (err) { console.error(err); }
             }
-            product.img = "/uploads/" + req.file.filename;
-            product.isLocalImg = true;
-        }
-        await product.save();
+      product.img = "/uploads/" + req.file.filename;
+        product.isLocalImg = true;
+    } else if (req.body.img && req.body.img.trim() !== "") { 
+        product.img = req.body.img.trim();
+        product.isLocalImg = false;
+    }
+
+    await product.save();
+
         res.json({ success: true, message: "Товар обновлен!" });
     } catch (error) { res.status(500).json({ success: false, message: "Ошибка сервера" }); }
 });
