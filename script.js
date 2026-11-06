@@ -152,7 +152,7 @@ window.openProductDetailModal = function(encoded) {
     const p = JSON.parse(decodeURIComponent(atob(encoded)));
     
     // Заполняем данные внутри окна
-    document.getElementById('detail-modal-img').src = p.img || '💻';
+    document.getElementById('detail-modal-img').src = p.img || 'https://flaticon.com';;
     document.getElementById('detail-modal-name').innerText = p.name;
     document.getElementById('detail-modal-price').innerText = `${p.price.toLocaleString()} ₽`;
     document.getElementById('detail-modal-desc').innerText = p.desc || 'Описание товара отсутствует.';
