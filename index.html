@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ТехноМаркет — Магазин Электроники</title>
+    <style>
+        body { font-family: sans-serif; background: #f8f9fa; color: #333; margin: 0; padding: 0; }
+        
+        /* Красивая ровная шапка сайта */
+        .site-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #ffffff; border-bottom: 1px solid #eaeaea; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .site-header nav { display: flex; gap: 18px; }
+        .site-header a { text-decoration: none; color: #495057; font-weight: 600; font-size: 14px; cursor: pointer; transition: color 0.2s; }
+        .site-header a:hover { color: #007bff; }
+        
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        
+        /* Таблицы и сетки */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f4f4f4; font-weight: 600; }
+        
+        .admin-main-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; margin-top: 20px; }
+        .admin-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eaeaea; }
+        
+        /* Кнопки и формы */
+        .form-group { display: flex; flex-direction: column; margin-bottom: 15px; text-align: left; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px; }
+        .form-group input, .form-group textarea { padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+        
+        .btn-blue { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .btn-blue:hover { background: #0056b3; }
+        .btn-green { background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .btn-green:hover { background: #218838; }
+        
+        .btn-action { color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; display: block; width: 100%; margin: 5px 0; font-size: 13px; text-align: center; }
+        .btn-edit { background: #ffa500; }
+        .btn-delete { background: #ff4d4d; }
+
+        /* Модалка авторизации */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .modal-content { background: #ffffff; padding: 30px; border-radius: 16px; width: 100%; max-width: 360px; box-shadow: 0 10px 35px rgba(0,0,0,0.18); position: relative; }
+        .modal-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 20px; gap: 10px; }
+        .tab-btn { flex: 1; padding: 10px; background: none; border: none; font-size: 16px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #007bff; border-bottom-color: #007bff; }
+    </style>
+</head>
+<body>
+
+<!-- Навигационная панель -->
+<header class="site-header">
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <span style="font-size: 18px; font-weight: bold; color: #222; letter-spacing: 0.5px;">ТехноМаркет</span>
+        <nav>
+            <a onclick="switchPage('catalog')">Каталог</a>
+            <a onclick="switchPage('cart')">Корзина (<span id="cart-count">0</span>)</a>
+            <a id="nav-user-orders-link" onclick="switchPage('user-orders')" style="display: none;">Мои заказы</a>
+            <a id="nav-admin-link" onclick="switchPage('admin')" style="display: none;">Админка</a>
+        </nav>
+    </div>
+    <div id="auth-nav-zone"></div>
+</header>
+
+<div class="container">
+    <!-- ЭКРАН 1: КАТАЛОГ -->
+    <section id="page-catalog" class="page-section active">
+        <h2 style=" font-family:Helevetica;align-item: center ; justify-content:center;">Каталог</h2>
+        <div id="catalog-container"></div>
+    </section>
+
+    <!-- ЭКРАН 2: КОРЗИНА -->
+    <section id="page-cart" class="page-section">
+        <h1>🛒 Ваша корзина</h1>
+        <table>
+            <thead>
+                <tr><th>Продукт</th><th>Цена</th><th>Количество</th><th>Сумма</th><th>Действие</th></tr>
+            </thead>
+            <tbody id="cart-table-body"></tbody>
+        </table>
+        <h3>Итого к оплате: <span id="total-price-span">0</span> руб.</h3>
+        
+        <div class="admin-card" style="max-width: 450px; margin-top: 30px;">
+            <h2 style="margin-top:0;">📋 Данные для доставки</h2>
+            <form onsubmit="sendOrderToServer(event)">
+                <div class="form-group"><label>Ваше имя:</label><input type="text" id="client-name" required placeholder="Имя"></div>
+                <div class="form-group"><label>Номер телефона:</label><input type="tel" id="client-phone" required placeholder="+7..."></div>
+                <button type="submit" class="btn-blue">Подтвердить заказ</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ЭКРАН 3: МОИ ЗАКАЗЫ (ЛИЧНЫЙ КАБИНЕТ) -->
+    <section id="page-user-orders" class="page-section">
+        <h1>📦 Мои заказы и их статусы</h1>
+        <div id="user-orders-container" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;"></div>
+    </section>
+
+    <!-- ЭКРАН 4: ПОЛНОЦЕННАЯ АДМИНКА -->
+    <section id="page-admin" class="page-section">
+        <div id="admin-zone-root"></div>
+    </section>
+</div>
+
+<!-- Модальное окно авторизации -->
+<div id="auth-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <button style="position: absolute; top: 12px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #bbb;" onclick="closeAuthModal()">&times;</button>
+        <div class="modal-tabs">
+            <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Вход</button>
+            <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Регистрация</button>
+        </div>
+        <form id="user-login-form" onsubmit="handleUserLogin(event)">
+            <div class="form-group"><label>Email:</label><input type="email" id="auth-login-email" required></div>
+            <div class="form-group"><label>Пароль:</label><input type="password" id="auth-login-password" required></div>
+            <button type="submit" class="btn-blue">Войти в профиль</button>
+        </form>
+        <form id="user-register-form" onsubmit="handleUserRegister(event)" style="display: none;">
+            <div class="form-group"><label>Ваше имя:</label><input type="text" id="auth-reg-name" required></div>
+            <div class="form-group"><label>Email:</label><input type="email" id="auth-reg-email" required></div>
+            <div class="form-group"><label>Пароль:</label><input type="password" id="auth-reg-password" required></div>
+            <button type="submit" class="btn-green">Создать аккаунт</button>
+        </form>
+    </div>
+</div>
+
+<!-- Контейнер для всплывающих Тостов -->
+<style>
+/* Стили для красивого сочного тост-уведомления */
+.toast-notification {
+    background: #28a745 !important; /* Настоящий сочный зеленый цвет */
+    color: white !important;
+    padding: 14px 24px !important;
+    border-radius: 10px !important;
+    font-family: sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4) !important; /* Яркая неоновая тень */
+    min-width: 280px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    opacity: 0;
+    transform: translateX(50px);
+    animation: toastSlideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important; /* Плавный вылет с отскоком */
+    transition: all 0.3s ease;
+}
+
+/* Анимация появления справа налево */
+@keyframes toastSlideIn {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Класс для плавного исчезновения */
+.toast-notification.fade-out {
+    opacity: 0 !important;
+    transform: scale(0.9) !important;
+    margin-top: -50px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+}
+</style>
+
+<div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+<script>
+    function openAuthModal() { document.getElementById('auth-modal').style.display = 'flex'; switchAuthTab('login'); }
+    function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+    function switchAuthTab(tab) {
+        var loginForm = document.getElementById('user-login-form');
+        var registerForm = document.getElementById('user-register-form');
+        var tl = document.getElementById('tab-login');
+        var tr = document.getElementById('tab-register');
+        if (tab === 'login') {
+            loginForm.style.display = 'block'; registerForm.style.display = 'none';
+            tl.classList.add('active'); tr.classList.remove('active');
+        } else {
+            loginForm.style.display = 'none'; registerForm.style.display = 'block';
+            tr.classList.add('active'); tl.classList.remove('active');
+        }
+    }
+</script>
+
+
+<script src="script.js"></script>
+
+<!-- Модальное окно детального просмотра товара -->
+<div id="product-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.3s ease;">
+    <div id="product-detail-content" style="background: white; width: 90%; max-width: 700px; border-radius: 16px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2); position: relative; transform: scale(0.7); opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: grid; grid-template-columns: 1fr 1.2fr;">
+        
+        <!-- Кнопка закрытия окна -->
+        <button onclick="closeProductDetailModal()" style="position: absolute; top: 15px; right: 15px; background: #f3f4f6; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: background 0.2s;">✕</button>
+        
+        <!-- Левая колонка: Большая картинка -->
+        <div style="background: #fdfdfd; padding: 30px; display: flex; align-items: center; justify-content: center; border-right: 1px solid #f3f4f6; min-height: 350px;">
+            <img id="detail-modal-img" src="" style="max-width: 100%; max-height: 300px; object-fit: contain;">
+        </div>
+        
+        <!-- Правая колонка: Описание и покупка -->
+        <div style="padding: 35px; display: flex; flex-direction: column; justify-content: space-between; text-align: left;">
+            <div>
+                <h2 id="detail-modal-name" style="margin: 0 0 15px 0; font-size: 24px; font-weight: 700; color: #222; line-height: 1.3;"></h2>
+                <div style="font-size: 22px; font-weight: 800; color: #2c3e50; margin-bottom: 20px;" id="detail-modal-price"></div>
+                <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 0; max-height: 180px; overflow-y: auto;" id="detail-modal-desc"></p>
+            </div>
+            
+            <div id="detail-modal-action-zone" style="margin-top: 25px;">
+                <!-- Кнопка вставки сгенерируется динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

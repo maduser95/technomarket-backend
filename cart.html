@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина — ТехноМаркет</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background: #218838; }
+        .discount-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 4px; margin-bottom: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <span>💻 Техно Маркет</span> | 
+        <a href="index.html">Главная</a>
+        <a href="catalog.html">Каталог</a>
+        <a href="cart.html">Корзина</a>
+    </div>
+
+    <h1>🛒 Ваша корзина</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Продукт</th>
+                <th>Цена</th>
+                <th>Количество</th>
+                <th>Сумма</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody id="cart-table-body">
+            <!-- Товары будут вставляться сюда через JS -->
+        </tbody>
+    </table>
+
+    <div id="summary-info">
+        <h3>Итого к оплате: <span id="total-price-span">0</span> руб.</h3>
+    </div>
+
+    <div class="discount-box">
+        🔥 Вам доступна скидка нового клиента: <strong>5%</strong><br>
+        Экономия: <span id="discount-amount">0</span> руб.
+    </div>
+
+    <h2>📋 Данные для доставки</h2>
+    <div class="form-group">
+        <label for="client-name">Ваше имя:</label>
+        <input type="text" id="client-name" placeholder="Введите имя">
+    </div>
+    <div class="form-group">
+        <label for="client-phone">Номер телефона:</label>
+        <input type="tel" id="client-phone" placeholder="+7 (999) 999-99-99">
+    </div>
+
+    <button class="btn" id="confirm-order-btn">Подтвердить заказ</button>
+
+    <script>
+        // Инициализация корзины из LocalStorage (или пустой массив, если ничего нет)
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        
+        // Переменные для хранения расчетов сумм
+        let finalPrice = 0;
+
+        // 1. Функция отображения товаров в корзине
+        function renderCart() {
+            const tbody = document.getElementById('cart-table-body');
+            tbody.innerHTML = '';
+            
+            let rawTotal = 0;
+
+            if (cart.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Ваша корзина пуста</td></tr>';
+                document.getElementById('total-price-span').innerText = '0';
+                document.getElementById('discount-amount').innerText = '0';
+                finalPrice = 0;
+                return;
+            }
+
+            cart.forEach((item, index) => {
+                const itemSum = item.price * item.quantity;
+                rawTotal += itemSum;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.price} руб.</td>
+                    <td>${item.quantity}</td>
+                    <td>${itemSum} руб.</td>
+                    <td><button onclick="removeItem(${index})" style="color:red; cursor:pointer;">Удалить</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Расчет скидки 5%
+            const discount = Math.round(rawTotal * 0.05);
+            finalPrice = rawTotal - discount;
+
+            // Вывод сумм на экран
+            document.getElementById('discount-amount').innerText = discount;
+            document.getElementById('total-price-span').innerText = finalPrice;
+        }
+
+        // 2. Функция удаления товара из корзины
+        window.removeItem = function(index) {
+            cart.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCart();
+        };
+
+        // 3. Функция отправки заказа в базу данных MongoDB вместо alert
+        async function confirmOrder() {
+            const name = document.getElementById('client-name').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
+
+            if (!name || !phone) {
+                alert('⚠️ Пожалуйста, заполните поля "Ваше имя" и "Номер телефона"!');
+                return;
+            }
+
+            if (cart.length === 0) {
+                alert('⚠️ Нельзя оформить заказ, так как корзина пуста!');
+                return;
+            }
+
+            // Формируем объект данных для нашего бэкенда
+            const orderData = {
+                clientName: name,
+                clientPhone: phone,
+                items: cart.map(item => ({
+                    productId: item.id || item._id || "", // сохраняем ID товара
+                    name: item.name,
+                    price: Number(item.price),
+                    quantity: Number(item.quantity)
+                })),
+                totalPrice: finalPrice
+            };
+
+            try {
+                // Отправляем POST-запрос на созданный нами ранее роут в server.js
+                const response = await fetch('http://localhost:3000/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('🎉 Заказ успешно сохранен в базе данных!');
+                    
+                    // Полностью очищаем корзину
+                    cart = [];
+                    localStorage.removeItem('cart');
+                    
+                    // Перенаправляем покупателя на главную страницу
+                    window.location.href = 'index.html';
+                } else {
+                    alert('❌ Ошибка при оформлении: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Критическая ошибка fetch:', error);
+                alert('❌ Не удалось отправить заказ. Проверьте, запущен ли Node.js сервер!');
+            }
+        }
+
+        // Привязываем клик к кнопке подтверждения
+        document.getElementById('confirm-order-btn').addEventListener('click', confirmOrder);
+
+        // Запускаем отрисовку корзины при загрузке страницы
+        document.addEventListener('DOMContentLoaded', renderCart);
+    </script>
+</body>
+</html>
