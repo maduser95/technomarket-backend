@@ -378,6 +378,21 @@ app.patch('/api/orders/:id', verifyToken, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, message: "Ошибка сервера" }); }
 });
 
+// Удаление заказа по ID
+app.delete('/api/orders/:id', verifyToken, async (req, res) => {
+    try {
+        const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+        if (!deletedOrder) {
+            return res.status(404).json({ success: false, message: "Заказ не найден" });
+        }
+        return res.json({ success: true, message: "Заказ успешно удален" });
+    } catch (error) { 
+        console.error("Ошибка при удалении заказа:", error);
+        res.status(500).json({ success: false, message: "Ошибка сервера" }); 
+    }
+});
+
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Сервер ТехноМаркета запущен на порту ${PORT}!`);
 });
