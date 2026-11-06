@@ -104,7 +104,8 @@ window.renderCatalog = async function() {
                         <!-- Добавили вызов openProductDetailModal при клике на всю карту -->
                         <div class="market-product-card" onclick="openProductDetailModal('${encoded}')">
                             <div style="text-align: center; height: 160px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; overflow: hidden;">
-                                <img src="${p.img}" class="product-img-anim" style="max-width:100%; max-height:100%; object-fit:contain; transition: transform 0.3s ease;" onerror="this.src='💻'">
+                                <img src="${p.img}" class="product-img-anim" style="max-width:100%; max-height:100%; object-fit:contain; transition: transform 0.3s ease;" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'"
+>
                             </div>
                             <h3 style="font-size: 16px; font-weight: 600; color: #222; margin: 0 0 8px 0; min-height: 44px;">${p.name}</h3>
                             <p style="font-size:13px; color:#666; height:40px; overflow:hidden; margin: 0 0 15px 0; line-height: 1.4;">${p.desc || 'Без описания'}</p>
